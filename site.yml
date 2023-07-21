@@ -1,0 +1,26 @@
+#### Automatically create Nagios host configuration file based on Ansible inventory.
+#### Automatically delete objects that have been removed from Ansible inventory.
+---
+- hosts: servers
+  become: true
+
+  vars:
+    nagios_cfg_dir: /usr/local/nagios/etc/objects/
+
+  handlers:
+    - name: restart nagios
+      service: name=nagios state=restarted
+      delegate_to: "{{ NAGIOS_FQDN }}"
+
+  tasks:
+
+    - name: Create host definition and send to Nagios server. 
+      template: 
+        src: nagios.j2
+        dest: "{{ nagios_cfg_dir }}/{{ inventory_hostname }}.cfg"
+        owner: nagios
+        group: nagios
+        mode: 0774
+      delegate_to: "{{ NAGIOS_INV_NAME }}"
+      when: 'inventory_hostname not in NAGIOS_FQDN' 
+      notify: restart nagios
