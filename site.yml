@@ -1,5 +1,5 @@
 #### Automatically create Nagios host configuration file based on Ansible inventory.
-#### Automatically delete objects that have been removed from Ansible inventory.
+
 ---
 - hosts: servers
   become: true
@@ -23,4 +23,38 @@
         mode: 0774
       delegate_to: "{{ NAGIOS_INV_NAME }}"
       when: 'inventory_hostname not in NAGIOS_FQDN' 
+      notify: restart nagios
+
+
+#### Automatically delete objects that have been removed from Ansible inventory.
+
+
+- hosts: nagios
+  become: true
+  tags: test
+
+  vars:
+    nagios_cfg_dir: /usr/local/nagios/etc/objects/
+
+  handlers:
+
+    - name: restart nagios
+      service: name=nagios state=restarted
+      
+  tasks:
+  
+    - name: Build list of existing files in my objects folder.
+      shell: "ls {{ nagios_cfg_dir }} | sed -e 's/\\.cfg$//'"
+      register: files
+      changed_when: false
+
+    - set_fact:
+        orphans: "{{ files.stdout_lines | difference(groups['servers']) }}"
+
+
+    - name: Remove orphan nagios config files.
+      file:
+        name: "{{nagios_cfg_dir}}/{{ item }}.cfg" 
+        state: absent
+      with_items: "{{ orphans }}"
       notify: restart nagios
