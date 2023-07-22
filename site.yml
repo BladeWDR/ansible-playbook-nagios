@@ -10,6 +10,7 @@
   handlers:
     - name: restart nagios
       service: name=nagios state=restarted
+      run_once: true
       delegate_to: "{{ NAGIOS_FQDN }}"
 
   tasks:
@@ -40,6 +41,7 @@
 
     - name: restart nagios
       service: name=nagios state=restarted
+      run_once: true
       
   tasks:
   
